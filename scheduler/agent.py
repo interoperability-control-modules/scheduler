@@ -46,20 +46,33 @@ import json
 from datetime import datetime, timedelta, timezone
 from pandas.tseries.holiday import USFederalHolidayCalendar as hl_day
 from control.optimization import Optimization
-from volttron.platform.agent import utils
-from volttron.platform.agent.utils import format_timestamp, get_aware_utc_now, parse_timestamp_string
-from volttron.platform.messaging import topics
-from volttron.platform.messaging.health import STATUS_GOOD
-from volttron.platform.vip.agent import Agent, Core, PubSub, RPC
-from volttron.platform.scheduling import cron
-from volttron.platform.jsonrpc import RemoteError
-from volttron.platform.vip.agent.subsystems.query import Query
+from importlib.metadata import distribution, PackageNotFoundError
+try:
+    distribution('volttron-core')
+    from volttron.client.logs import setup_logging
+    from volttron.client.messaging import topics
+    from volttron.client.messaging.health import STATUS_GOOD
+    from volttron.client.vip.agent import Agent, Core, PubSub, RPC
+    from volttron.client.vip.agent.subsystems.query import Query
+    from volttron.utils import format_timestamp, get_aware_utc_now, load_config, parse_timestamp_string, vip_main
+    from volttron.utils.jsonrpc import RemoteError
+    from volttron.utils.scheduling import cron
+except PackageNotFoundError:
+    # The monolithic platform (and der-control-fastlib's compatibility layer) provide the same names here.
+    from volttron.platform.agent.utils import (format_timestamp, get_aware_utc_now, load_config, parse_timestamp_string,
+                                               setup_logging, vip_main)
+    from volttron.platform.jsonrpc import RemoteError
+    from volttron.platform.messaging import topics
+    from volttron.platform.messaging.health import STATUS_GOOD
+    from volttron.platform.scheduling import cron
+    from volttron.platform.vip.agent import Agent, Core, PubSub, RPC
+    from volttron.platform.vip.agent.subsystems.query import Query
 from dateutil import parser
 import dateutil
 import math
 import time
 
-utils.setup_logging()
+setup_logging()
 _log = logging.getLogger(__name__)
 __version__ = '1.0'
 
@@ -73,7 +86,7 @@ class Optimize(Agent):
         # If a configuration file is used the agent will utilize
         # this for the default configuration.  If a config is in
         # config store this will override the config file.
-        file_config = utils.load_config(config_path)
+        file_config = load_config(config_path)
         default_config = {
             "campus": "PNNL",
             "actuator": "platform.actuator",
@@ -663,7 +676,7 @@ def actuate_storage(self, value):
 def main(argv=sys.argv):
     '''Main method called by the eggsecutable.'''
     try:
-        utils.vip_main(Optimize, version=__version__)
+        vip_main(Optimize, version=__version__)
     except Exception as e:
         _log.exception('unhandled exception')
 
